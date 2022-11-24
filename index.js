@@ -103,13 +103,28 @@ async function run() {
         //     res.send(result)
         // })
 
+        app.put('/advertiseBike/:id', async (req, res) => {
+            const id = req.params.id;
+            const filter = { _id: ObjectId(id) };
+            const option = { upsert: true };
+            const updateDoc = {
+                $set: {
+                    advertise:true
+                }
+            }
+            const result = await bikesCollection.updateOne(filter, updateDoc, option);
+
+            res.send(result)
+        })
+
         app.put('/bike/:id', async (req, res) => {
             const id = req.params.id;
             const filter = { _id: ObjectId(id) }
             const option = { upsert: true };
             const updatedoc = {
                 $set: {
-                    status:'sold',  
+                    status: 'sold',  
+                    advertise:false,
                 }
             }
             const result = await bikesCollection.updateOne(filter, updatedoc, option);
