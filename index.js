@@ -22,7 +22,9 @@ async function run() {
 
         const usersCollection = client.db('bikehutCollection').collection('users')
         const bikesCollection = client.db('bikehutCollection').collection('bikes')
+        const catagoryCollection = client.db('bikehutCollection').collection('bikecatagories')
 
+     
         // User Api
         app.put("/user/:email", async (req, res) => {
             try {
@@ -57,8 +59,12 @@ async function run() {
             }
         })
 
-
-
+        // bike Catagory
+        app.get('/catagories',async (req, res) => {
+            const query = {}
+            const result = await catagoryCollection.find(query).toArray()
+            res.send(result)
+        })
         // Bike Api
         app.post('/addbikes', async (req, res) => {
 
@@ -98,9 +104,7 @@ run().catch(err => console.log(err))
 app.get('/', (req, res) => {
     res.send('Server is Running')
 })
-app.get('/catagories', (req, res) => {
-    res.send(catagories)
-})
+
 
 app.listen(port, () => {
     console.log(`server is running on port ${port}`);
