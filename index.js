@@ -21,7 +21,8 @@ async function run() {
     try {
 
      const usersCollection = client.db('bikehutCollection').collection('users')
-
+     const bikesCollection = client.db('bikehutCollection').collection('bikes')
+    
         
      app.put("/user/:email", async (req, res) => {
         try {
@@ -56,6 +57,14 @@ async function run() {
         }
     })
         
+        
+        app.post('/addbikes', async (req, res) => {
+
+            const body = req.body;
+            const result = await bikesCollection.insertOne(body);
+            res.send(result)
+
+    })
 
     }
     finally {
