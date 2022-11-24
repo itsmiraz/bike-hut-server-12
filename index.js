@@ -9,7 +9,7 @@ const jwt = require('jsonwebtoken');
 const catagories = require('./data/catagories.json')
 
 app.use(cors())
-app.use(express.json()) 
+app.use(express.json())
 
 
 const { MongoClient, ServerApiVersion } = require('mongodb');
@@ -17,62 +17,82 @@ const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@clu
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
 
 async function run() {
-   
+
     try {
 
-     const usersCollection = client.db('bikehutCollection').collection('users')
-     const bikesCollection = client.db('bikehutCollection').collection('bikes')
-    
-        
-     app.put("/user/:email", async (req, res) => {
-        try {
-            const email = req.params.email;
+        const usersCollection = client.db('bikehutCollection').collection('users')
+        const bikesCollection = client.db('bikehutCollection').collection('bikes')
 
-            // check the req
-           
-            const user = req.body;
-            const filter = { email: email };
-            const options = { upsert: true };
-            const updateDoc = {
-                $set: user
+        // User Api
+        app.put("/user/:email", async (req, res) => {
+            try {
+                const email = req.params.email;
+
+                // check the req
+
+                const user = req.body;
+                const filter = { email: email };
+                const options = { upsert: true };
+                const updateDoc = {
+                    $set: user
+                }
+                const result = await usersCollection.updateOne(filter, updateDoc, options);
+
+                // token generate 
+                const token = jwt.sign(
+                    { email: email },
+                    process.env.ACCESS_TOKEN_SECRET,
+                    { expiresIn: "1d" }
+                )
+                res.send({
+                    status: "success",
+                    message: "Token Created Successfully",
+                    data: token
+                })
+
+
             }
-            const result = await usersCollection.updateOne(filter, updateDoc, options);
-
-            // token generate 
-            const token = jwt.sign(
-                { email: email },
-                process.env.ACCESS_TOKEN_SECRET,
-                { expiresIn: "1d" }
-            )
-            res.send({
-                status: "success",
-                message: "Token Created Successfully",
-                data: token
-            })
+            catch (err) {
+                console.log(err)
+            }
+        })
 
 
-        }
-        catch (err) {
-            console.log(err)
-        }
-    })
-        
-        
+
+        // Bike Api
         app.post('/addbikes', async (req, res) => {
 
             const body = req.body;
             const result = await bikesCollection.insertOne(body);
             res.send(result)
 
-    })
+        })
+
+        app.get('/bikes/:catagory', async (req, res) => {
+            const catagory = req.params.catagory;
+            const query = {
+                brand: catagory
+            }
+            const result = await bikesCollection.find(query).toArray();
+            res.send(result)
+        })
+
+        app.get('/allbikes', async (req, res) => {
+            const email = req.query.email;
+            const query = {
+                sellerEmail: email
+            };
+            const bikes = await bikesCollection.find(query).toArray()
+            res.send(bikes)
+        })
 
     }
     finally {
-        
+
     }
-    
+
 }
-run().catch(err=>console.log(err))
+run().catch(err => console.log(err))
 
 
 app.get('/', (req, res) => {
