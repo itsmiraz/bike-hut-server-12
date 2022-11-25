@@ -24,6 +24,24 @@ async function run() {
         const catagoryCollection = client.db('bikehutCollection').collection('bikecatagories')
         const bookedBikeCollection = client.db('bikehutCollection').collection('bookedBikes')
 
+        // Strip Api
+
+    app.post("/create-payment-intent", async (req, res) => {
+        const booking = req.body;
+        // console.log('api hit',req.headers)
+        const price = booking.price;
+        const amount = price * 100;
+  
+        const paymentIntent = await stripe.paymentIntents.create({
+          currency: "usd",
+          amount: amount,
+  
+          "payment_method_types": ["card"],
+        });
+        res.send({
+          clientSecret: paymentIntent.client_secret,
+        });
+      });
 
         // User Api
         app.put("/user/:email", async (req, res) => {
@@ -119,17 +137,17 @@ async function run() {
         // Check Admin 
         app.get("/user/admin/:email", async (req, res) => {
             const email = req.params.email;
-            const query = { email };
+            const query = { email: email };
             const user = await usersCollection.findOne(query);
-            res.send({ isAdmin: user?.role === "admin" });
+            res.send({ isAdmin: user.role === 'admin' });
         });
 
         // check seller
         app.get('/user/seller/:email', async (req, res) => {
             const email = req.params.email;
-            const query = { email }
+            const query = { email: email }
             const user = await usersCollection.findOne(query)
-            res.send({isSeller : user?.role === 'Seller'})
+            res.send({isSeller : user.role === 'Seller'})
         })
 
         // bike Catagory
@@ -223,7 +241,6 @@ async function run() {
             const updateDoc = {
                 $set: {
                     model: body.model,
-                    catagoryId: body.catagoryId,
                     condition: body.condition,
                     totalDriven: body.totalDriven,
                     orginalPrice: body.orginalPrice,
