@@ -124,6 +124,13 @@ async function run() {
             res.send({ isAdmin: user?.role === "admin" });
         });
 
+        // check seller
+        app.get('/user/seller/:email', async (req, res) => {
+            const email = req.params.email;
+            const query = { email }
+            const user = await usersCollection.findOne(query)
+            res.send({isSeller : user?.role === 'Seller'})
+        })
 
         // bike Catagory
         app.get('/catagories', async (req, res) => {
