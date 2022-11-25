@@ -80,19 +80,19 @@ async function run() {
         app.put('/verifyseller', async (req, res) => {
             const email = req.query.email;
             const filter = {
-                email : email
+                email: email
             }
-            const option = {upsert : true}
+            const option = { upsert: true }
             const updateDoc = {
                 $set: {
                     verifySeller: true,
                 }
             }
 
-            const result = await usersCollection.updateOne(filter,updateDoc,option)
+            const result = await usersCollection.updateOne(filter, updateDoc, option)
             res.send(result)
 
-        })  
+        })
 
 
 
@@ -111,10 +111,10 @@ async function run() {
 
         })
 
-        app.get('/bikes/:catagory', async (req, res) => {
-            const catagory = req.params.catagory;
+        app.get('/bikes/:id', async (req, res) => {
+            const id = req.params.id;
             const query = {
-                brand: catagory
+                catagoryId: id
             }
             const result = await bikesCollection.find(query).toArray();
             res.send(result)
@@ -178,6 +178,33 @@ async function run() {
             res.send(result)
         })
 
+        app.put('/editbikedetails/:id', async (req, res) => {
+            const id = req.params.id;
+            const body = req.body;
+            const filter = { _id: ObjectId(id) };
+            const option = { upsert: true };
+            const updateDoc = {
+                $set: {
+                    model: body.model,
+                    catagoryId: body.catagoryId,
+                    condition: body.condition,
+                    totalDriven: body.totalDriven,
+                    orginalPrice: body.orginalPrice,
+                    resalePrice: body.resalePrice,
+                    sellerNumber: body.sellerNumber,
+                    sellerLocation: body.sellerLocation,
+                    bikedetails: body.bikedetails,
+                    status: body.status,
+                    purchaseDate: body.purchaseDate,
+                }
+            }
+
+            const result = await bikesCollection.updateOne(filter, updateDoc, option);
+            res.send(result)
+
+        })
+
+
         app.delete('/bike/:id', async (req, res) => {
             const id = req.params.id;
             const query = { _id: ObjectId(id) }
@@ -209,10 +236,10 @@ async function run() {
                 sellerEmail: email
 
             }
-            
+
             const result = await bookedBikeCollection.find(query).toArray()
             res.send(result)
-       
+
         })
 
         app.delete('/book/:id', async (req, res) => {
