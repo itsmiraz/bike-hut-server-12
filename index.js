@@ -24,7 +24,7 @@ async function run() {
         const catagoryCollection = client.db('bikehutCollection').collection('bikecatagories')
         const bookedBikeCollection = client.db('bikehutCollection').collection('bookedBikes')
 
-     
+
         // User Api
         app.put("/user/:email", async (req, res) => {
             try {
@@ -63,23 +63,41 @@ async function run() {
             const email = req.query.email;
             // console.log(email)
 
-             let query = {}
+            let query = {}
 
             if (email) {
                 query = {
-                  
-                        email: email
-                    
+
+                    email: email
+
                 }
             }
             const result = await usersCollection.find(query).toArray();
             res.send(result)
         })
 
+        // Verify Seller 
+        app.put('/verifyseller', async (req, res) => {
+            const email = req.query.email;
+            const filter = {
+                email : email
+            }
+            const option = {upsert : true}
+            const updateDoc = {
+                $set: {
+                    verifySeller: true,
+                }
+            }
+
+            const result = await usersCollection.updateOne(filter,updateDoc,option)
+            res.send(result)
+
+        })  
+
 
 
         // bike Catagory
-        app.get('/catagories',async (req, res) => {
+        app.get('/catagories', async (req, res) => {
             const query = {}
             const result = await catagoryCollection.find(query).toArray()
             res.send(result)
@@ -111,7 +129,7 @@ async function run() {
         // get bike by user email
         app.get('/allbikes', async (req, res) => {
 
-            
+
             const email = req.query.email;
             const query = {
                 sellerEmail: email
@@ -138,7 +156,7 @@ async function run() {
             const option = { upsert: true };
             const updateDoc = {
                 $set: {
-                    advertise:'true'
+                    advertise: 'true'
                 }
             }
             const result = await bikesCollection.updateOne(filter, updateDoc, option);
@@ -152,8 +170,8 @@ async function run() {
             const option = { upsert: true };
             const updatedoc = {
                 $set: {
-                    status: 'sold',  
-                    advertise:'false',
+                    status: 'sold',
+                    advertise: 'false',
                 }
             }
             const result = await bikesCollection.updateOne(filter, updatedoc, option);
@@ -168,8 +186,8 @@ async function run() {
         })
 
 
-        // Booked Bikes 
-        app.post('/book',async (req, res) => {
+        //-------------- Booked Bikes ------------
+        app.post('/book', async (req, res) => {
             const body = req.body;
             const result = await bookedBikeCollection.insertOne(body)
             res.send(result);
@@ -182,6 +200,25 @@ async function run() {
                 buyerEmail: email
             }
             const result = await bookedBikeCollection.find(query).toArray()
+            res.send(result)
+        })
+
+        app.get('/buyers', async (req, res) => {
+            const email = req.query.email;
+            const query = {
+                sellerEmail: email
+
+            }
+            
+            const result = await bookedBikeCollection.find(query).toArray()
+            res.send(result)
+       
+        })
+
+        app.delete('/book/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: ObjectId(id) }
+            const result = await bookedBikeCollection.deleteOne(query);
             res.send(result)
         })
 
