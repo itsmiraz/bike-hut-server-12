@@ -94,6 +94,27 @@ async function run() {
 
         })
 
+        // make  user admin 
+        app.put('/user/admin/:id',  async (req, res) => {
+            
+            // const decodedEmail = req.decoded.email;
+            // const query = { email: decodedEmail };
+            // const user = await usersCollection.findOne(query);
+            // if (user?.role === 'admin') {
+            //     res.status(403).send({ message: "Forbiddn Access" });
+            // }
+
+            const id = req.params.id;
+            const filter = { _id: ObjectId(id) }
+            const option = { upsert: true };
+            const updateDoc = {
+                $set: {
+                    role: 'admin'
+                }
+            }
+            const result = await usersCollection.updateOne(filter, updateDoc, option)
+            res.send(result)
+        })
 
 
         // bike Catagory
@@ -178,6 +199,7 @@ async function run() {
             res.send(result)
         })
 
+        // edit bike post
         app.put('/editbikedetails/:id', async (req, res) => {
             const id = req.params.id;
             const body = req.body;
