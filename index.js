@@ -116,6 +116,14 @@ async function run() {
             res.send(result)
         })
 
+        // Check Admin 
+        app.get("/user/admin/:email", async (req, res) => {
+            const email = req.params.email;
+            const query = { email };
+            const user = await usersCollection.findOne(query);
+            res.send({ isAdmin: user?.role === "admin" });
+        });
+
 
         // bike Catagory
         app.get('/catagories', async (req, res) => {
