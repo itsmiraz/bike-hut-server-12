@@ -55,18 +55,18 @@ async function run() {
                 // check the req
                 const query = { email: email }
                 const existingUser = await usersCollection.findOne(query)
-                console.log(existingUser);
+              
                 if (existingUser) {
                     const token = jwt.sign(
                         { email: email },
                         process.env.ACCESS_TOKEN_SECRET,
                         { expiresIn: "1d" }
                     )
-                 return  res.send({ data: token  })
+                    return res.send({ data: token  })
                 }
                 
                 else {
-                    
+                      
                 const user = req.body;
                 const filter = { email: email };
                 const options = { upsert: true };
@@ -81,11 +81,7 @@ async function run() {
                     process.env.ACCESS_TOKEN_SECRET,
                     { expiresIn: "1d" }
                 )
-                res.send({
-                    status: "success",
-                    message: "Token Created Successfully",
-                    data: token
-                })
+               return  res.send({ data: token   })
 
                 }
 
