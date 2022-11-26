@@ -22,13 +22,16 @@ const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology:
 // verify jwt 
 function verifyJWT(req, res, next) {
     const authHeader = req.headers.authorization;
+    // console.log(authHeader);
     if (!authHeader) {
         return res.status(401).send({ meassage: 'unathorized Access' })
     }
+    // console.log(authHeader)
     const token = authHeader.split(' ')[1];
+    // console.log('token',token);
     jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, function (err, decoded) {
         if (err) {
-            return res.status(401).send({ message: 'Unauthorized Access' })
+            return res.status(403).send({ message: 'Unauthorized Access' })
         }
         req.decoded = decoded;
         next()
@@ -65,7 +68,11 @@ async function run() {
         });
       });
 
+        
+   
+        
         // User Api
+        // implement  jwt toaken
         app.put("/user/:email", async (req, res) => {
             try {
                 const email = req.params.email;
@@ -111,19 +118,20 @@ async function run() {
             }
         })
 
-        app.get('/user', async (req, res) => {
+        app.get('/user', verifyJWT, async (req, res) => {
+            const decodedEmail = req.decoded.email
+            console.log(decodedEmail);
             const email = req.query.email;
-            // console.log(email)
+            console.log('query',email)
 
             let query = {}
 
-            if (email) {
-                query = {
-
-                    email: email
-
-                }
+            const decoded = req.decoded;
+            if (decoded.email !== req.query.email) {
+                console.log('forbidden Access')
+                res.status(403).send({ message: 'Forbidend access' })
             }
+           
             const result = await usersCollection.find(query).toArray();
             res.send(result)
         })
