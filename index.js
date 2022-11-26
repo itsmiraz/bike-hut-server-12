@@ -6,6 +6,9 @@ const port = process.env.PORT || 5000;
 const jwt = require('jsonwebtoken');
 
 
+const stripe = require("stripe")(process.env.STRIPE_SECRET);
+
+
 
 app.use(cors())
 app.use(express.json())
@@ -23,15 +26,16 @@ async function run() {
         const bikesCollection = client.db('bikehutCollection').collection('bikes')
         const catagoryCollection = client.db('bikehutCollection').collection('bikecatagories')
         const bookedBikeCollection = client.db('bikehutCollection').collection('bookedBikes')
+        const allpaymentsCollection = client.db('bikehutCollection').collection('payments')
 
         // Strip Api
 
     app.post("/create-payment-intent", async (req, res) => {
         const booking = req.body;
         // console.log('api hit',req.headers)
-        const price = booking.price;
-        const amount = price * 100;
-  
+        const price = booking.bikePrice        ;
+        const amount = parseInt(price) * 100;
+        console.log(price)
         const paymentIntent = await stripe.paymentIntents.create({
           currency: "usd",
           amount: amount,
@@ -49,7 +53,20 @@ async function run() {
                 const email = req.params.email;
 
                 // check the req
-
+                const query = { email: email }
+                const existingUser = await usersCollection.findOne(query)
+                console.log(existingUser);
+                if (existingUser) {
+                    const token = jwt.sign(
+                        { email: email },
+                        process.env.ACCESS_TOKEN_SECRET,
+                        { expiresIn: "1d" }
+                    )
+                 return  res.send({ data: token  })
+                }
+                
+                else {
+                    
                 const user = req.body;
                 const filter = { email: email };
                 const options = { upsert: true };
@@ -69,6 +86,9 @@ async function run() {
                     message: "Token Created Successfully",
                     data: token
                 })
+
+                }
+
 
 
             }
@@ -94,6 +114,12 @@ async function run() {
             res.send(result)
         })
 
+        app.delete('/user/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: ObjectId(id) };
+            const result = await usersCollection.deleteOne(query);
+            res.send(result)
+        })
         // Verify Seller 
         app.put('/verifyseller', async (req, res) => {
             const email = req.query.email;
@@ -295,6 +321,12 @@ async function run() {
             res.send(result)
 
         })
+        app.get("/bookings/:id", async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: ObjectId(id) };
+            const result = await bookedBikeCollection.findOne(query);
+            res.send(result);
+          });
 
         app.delete('/book/:id', async (req, res) => {
             const id = req.params.id;
@@ -302,6 +334,44 @@ async function run() {
             const result = await bookedBikeCollection.deleteOne(query);
             res.send(result)
         })
+
+
+        // app.get('/paid', async (req, res) => {
+        //     const filter = {}
+        //     const option = { upsert: true }
+        //     const updateDoc = {
+        //         $set: {
+        //             paid:'false',
+        //         }
+        //     }
+        //     const result = await bikesCollection.updateMany(filter, updateDoc, option)
+        //     res.send(result)
+        // })
+
+        // Payments 
+        app.post('/payments', async (req, res) => {
+            const body = req.body;
+            const id = body.bookingID;
+            // const filter = { id: ObjectId(id) }
+            const bikecollectionQuery = { _id:ObjectId(id)}
+            const bookedBikeQuery = {
+                bikeId: id}
+            const option = { upsert: true }
+            const updateDoc = {
+                $set: {
+                    paid:'true',
+                }
+            }
+            const updateBikeCollection = await bikesCollection.updateOne(bikecollectionQuery, updateDoc, option)
+            const updatebookedollection = await bookedBikeCollection.updateOne(bookedBikeQuery, updateDoc, option)
+            const result = await allpaymentsCollection.insertOne(body)
+            res.send(result)
+        })
+        // app.get('/payments/:id',async (req, res) => {
+        //     const id = req.query.id;
+        //     const query = { _id: ObjectId(id) }
+        //     const 
+        // })
 
 
     }
