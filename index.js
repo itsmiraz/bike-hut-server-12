@@ -69,7 +69,15 @@ async function run() {
       });
 
         
-   
+      const verifyAdmin = async (req, res, next) => {
+        const decodedEmail = req.decoded.email;
+        const query = { email: decodedEmail };
+        const user = await usersCollection.findOne(query);
+        if (user?.role !== "admin") {
+          res.status(403).send({ message: "Forbiddn Access" });
+        }
+        next();
+      };
         
         // User Api
         // implement  jwt toaken
@@ -136,14 +144,14 @@ async function run() {
             res.send(result)
         })
 
-        app.delete('/user/:id', async (req, res) => {
+        app.delete('/user/:id',verifyJWT,verifyAdmin, async (req, res) => {
             const id = req.params.id;
             const query = { _id: ObjectId(id) };
             const result = await usersCollection.deleteOne(query);
             res.send(result)
         })
         // Verify Seller 
-        app.put('/verifyseller', async (req, res) => {
+        app.put('/verifyseller',verifyJWT,verifyAdmin, async (req, res) => {
             const email = req.query.email;
             const filter = {
                 email: email
@@ -161,7 +169,7 @@ async function run() {
         })
 
         // make  user admin 
-        app.put('/user/admin/:id',  async (req, res) => {
+        app.put('/user/admin/:id',verifyJWT,verifyAdmin,  async (req, res) => {
             
             // const decodedEmail = req.decoded.email;
             // const query = { email: decodedEmail };
