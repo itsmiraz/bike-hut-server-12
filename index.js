@@ -12,31 +12,32 @@ const stripe = require("stripe")(process.env.STRIPE_SECRET);
 
 app.use(cors())
 app.use(express.json())
+// verify jwt 
+function verifyJWT(req, res, next) {
+    const authHeader = req.headers.authorization;
+    // console.log('auhthed',authHeader);
+    if (!authHeader) {
+        return res.status(401).send({ message: 'Unathorized Access' })
+    }
+    const token = authHeader.split(' ')[1];
 
+    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, function (err, decoded) {
+        if (err) {
+            console.log(err)
+            return res.status(403).send({ message: 'Unathorized Access' })
+        }
+        req.decoded = decoded;
+        next()
+    })
+
+}
 
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.fpgnyx0.mongodb.net/?retryWrites=true&w=majority`;
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
 
 
-// verify jwt 
-function verifyJWT(req, res, next) {
-    const authHeader = req.headers.authorization;
-    // console.log(authHeader);
-    if (!authHeader) {
-        return res.status(401).send({ meassage: 'unathorized Access' })
-    }
-    // console.log(authHeader)
-    const token = authHeader.split(' ')[1];
-    // console.log('token',token);
-    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, function (err, decoded) {
-        if (err) {
-            return res.status(403).send({ message: 'Unauthorized Access' })
-        }
-        req.decoded = decoded;
-        next()
-    })
-}
+
 
 
 async function run() {
@@ -68,18 +69,29 @@ async function run() {
         });
       });
 
-        
+        // ------------ Verufy API ----------
+        // verify Admin
       const verifyAdmin = async (req, res, next) => {
         const decodedEmail = req.decoded.email;
         const query = { email: decodedEmail };
         const user = await usersCollection.findOne(query);
         if (user?.role !== "admin") {
-          res.status(403).send({ message: "Forbiddn Access" });
+        return  res.status(403).send({ message: "Admin Forbiddn Access" });
+        }
+        next();
+        };
+        // Verify Seller 
+      const verifySeller = async (req, res, next) => {
+        const decodedEmail = req.decoded.email;
+        const query = { email: decodedEmail };
+        const user = await usersCollection.findOne(query);
+        if (user?.role !== "Seller") {
+        return  res.status(403).send({ message: "Seller Forbiddn Access" });
         }
         next();
       };
         
-        // User Api
+        // ----------- User Api -----------
         // implement  jwt toaken
         app.put("/user/:email", async (req, res) => {
             try {
@@ -126,16 +138,17 @@ async function run() {
             }
         })
 
+        // geting users
         app.get('/user', verifyJWT, async (req, res) => {
             const decodedEmail = req.decoded.email
-            console.log(decodedEmail);
+            // console.log('decoded', decodedEmail)
             const email = req.query.email;
-            console.log('query',email)
+            // console.log('query ', email)
 
             let query = {}
-
             const decoded = req.decoded;
-            if (decoded.email !== req.query.email) {
+
+            if (decoded.email !== req.query.email ) {
                 console.log('forbidden Access')
                 res.status(403).send({ message: 'Forbidend access' })
             }
@@ -144,6 +157,8 @@ async function run() {
             res.send(result)
         })
 
+
+        // ----------- Admin Special Api ------------
         app.delete('/user/:id',verifyJWT,verifyAdmin, async (req, res) => {
             const id = req.params.id;
             const query = { _id: ObjectId(id) };
@@ -170,14 +185,6 @@ async function run() {
 
         // make  user admin 
         app.put('/user/admin/:id',verifyJWT,verifyAdmin,  async (req, res) => {
-            
-            // const decodedEmail = req.decoded.email;
-            // const query = { email: decodedEmail };
-            // const user = await usersCollection.findOne(query);
-            // if (user?.role === 'admin') {
-            //     res.status(403).send({ message: "Forbiddn Access" });
-            // }
-
             const id = req.params.id;
             const filter = { _id: ObjectId(id) }
             const option = { upsert: true };
@@ -190,6 +197,7 @@ async function run() {
             res.send(result)
         })
 
+        // --------- Api For Hooks  ---------
         // Check Admin 
         app.get("/user/admin/:email", async (req, res) => {
             const email = req.params.email;
@@ -206,6 +214,15 @@ async function run() {
             res.send({isSeller : user.role === 'Seller'})
         })
 
+        // Check buyer
+        app.get('/user/buyer/:email', async (req, res) => {
+            const email = req.params.email;
+            const query = { email: email }
+            const user = await usersCollection.findOne(query)
+            res.send({isSeller : user.role === 'Buyer'})
+        })
+
+        // -------- BikeS Api -------- 
         // bike Catagory
         app.get('/catagories', async (req, res) => {
             const query = {}
@@ -213,7 +230,7 @@ async function run() {
             res.send(result)
         })
         // Bike Api
-        app.post('/addbikes', async (req, res) => {
+        app.post('/addbikes',verifyJWT,verifySeller, async (req, res) => {
 
             const body = req.body;
             const result = await bikesCollection.insertOne(body);
@@ -260,7 +277,8 @@ async function run() {
         //     res.send(result)
         // })
 
-        app.put('/advertiseBike/:id', async (req, res) => {
+        // advertisebike api
+        app.put('/advertiseBike/:id',verifyJWT,verifySeller, async (req, res) => {
             const id = req.params.id;
             const filter = { _id: ObjectId(id) };
             const option = { upsert: true };
@@ -274,7 +292,8 @@ async function run() {
             res.send(result)
         })
 
-        app.put('/bike/:id', async (req, res) => {
+        // sold bike api
+        app.put('/bike/:id',verifyJWT,verifySeller, async (req, res) => {
             const id = req.params.id;
             const filter = { _id: ObjectId(id) }
             const option = { upsert: true };
@@ -289,7 +308,7 @@ async function run() {
         })
 
         // edit bike post
-        app.put('/editbikedetails/:id', async (req, res) => {
+        app.put('/editbikedetails/:id',verifyJWT,verifySeller, async (req, res) => {
             const id = req.params.id;
             const body = req.body;
             const filter = { _id: ObjectId(id) };
@@ -314,8 +333,8 @@ async function run() {
 
         })
 
-
-        app.delete('/bike/:id', async (req, res) => {
+        // delete bike api
+        app.delete('/bike/:id',verifyJWT, async (req, res) => {
             const id = req.params.id;
             const query = { _id: ObjectId(id) }
             const result = await bikesCollection.deleteOne(query);
@@ -331,7 +350,15 @@ async function run() {
 
         })
 
-        app.get('/booked', async (req, res) => {
+        app.get('/booked', verifyJWT, async (req, res) => {
+            
+            const decoded = req.decoded;
+
+            if (decoded.email !==req.query.email ) {
+                console.log('forbidden Access')
+                res.status(403).send({ message: 'Forbidend access' })
+            }
+
             const email = req.query.email;
             const query = {
                 buyerEmail: email
@@ -366,17 +393,20 @@ async function run() {
         })
 
 
-        // app.get('/paid', async (req, res) => {
-        //     const filter = {}
-        //     const option = { upsert: true }
-        //     const updateDoc = {
-        //         $set: {
-        //             paid:'false',
-        //         }
-        //     }
-        //     const result = await bikesCollection.updateMany(filter, updateDoc, option)
-        //     res.send(result)
-        // })
+        // app.put()
+
+        app.put('/reported/:id', async (req, res) => {
+            const id= req.params.id
+            const filter = {_id:ObjectId(id)}
+            const option = { upsert: true }
+            const updateDoc = {
+                $set: {
+                    reported:'true',
+                }
+            }
+            const result = await bikesCollection.updateMany(filter, updateDoc, option)
+            res.send(result)
+        })
 
         // Payments 
         app.post('/payments', async (req, res) => {
