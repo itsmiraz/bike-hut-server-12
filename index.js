@@ -139,7 +139,7 @@ async function run() {
         })
 
         // geting users
-        app.get('/user', verifyJWT, async (req, res) => {
+        app.get('/user',  async (req, res) => {
             const decodedEmail = req.decoded.email
             // console.log('decoded', decodedEmail)
             const email = req.query.email;
